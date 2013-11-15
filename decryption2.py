@@ -2,7 +2,7 @@ import serial
 import sys
 import time
 
-original = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]
+original = [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0]
 
 print "Opening serial port"
 try:
@@ -16,22 +16,28 @@ data = []
 avg = 0.
 i = 0
 
-listen_time = (.1 + .013)*(len(original) + 12)
+listen_time = (.11)*(len(original) + 24)
+safe_to_record = False
+print_once = True
 
 try:
 	s.flushInput()
-	start = time.time()
+	s.readline()
 	print "Start Read"
-	safe_to_record = False
+	start = time.time()
 	while True:
 		try:
 			value = s.readline()
 			value = float(value)
 			if not safe_to_record:
 				safe_to_record = time.time() - start > .500
-			if not safe_to_record and i > 0 and value > avg/i + 100:
-				start = time.time()
+			else:
+				if print_once:
+					print "Base reading taken"
+				print_once = False
+			if safe_to_record and i > 0 and value > avg/i + 100:
 				print "Start data record"
+				start = time.time()
 				while listen_time > time.time() - start:
 					try:
 						data.append(float(s.readline()))
@@ -47,18 +53,39 @@ try:
 finally:
 	s.close()
 
-def get_avg(data):
+print data, len(data)
+
+def get_ave(data):
 	avg = 0.
 	for datum in data:
 		avg += datum
 	return avg/len(data)
 
-print data, len(data)
+def get_derivative(data):
+	d = []
+	for i in range(len(data)-1):
+		d.append(data[i+1]-data[i])
+	return d
 
-freq = len(data)/len(original)
+def peaks(data,d_data,avg):
+	indices = [0] 
+	for i in range(1,len(d_data)):
+		if d_data[i-1] > 0 and d_data[i] < 0 and abs(d_data[i]) > 100:
+			indices.append(i)
+		elif d_data[i-1] < 0 and d_data[i] > 0 and abs(d_data[i]) > 100:
+			indices.append(i)
+	seq = []
+	for i in indices:
+		if data[i] > avg:
+			seq.append(1)
+		else:
+			seq.append(0)
+	return seq
+	
+def data_to_binary(data):
+	ave = get_ave(data)
+	
+	return peaks(data,der,get_ave(data))
 
-itr = freq/2
-for i in range(len(original)):
-	pass
 
 

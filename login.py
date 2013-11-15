@@ -1,8 +1,11 @@
-import serial
 import sys
-import time
+import foursquare
+import urllib2 as url2
+import urllib as url
+import webbrowser
+import serial
 
-original = [1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0]
+
 def get_stats(base):
 	ave = 0
 	for n in base:
@@ -34,6 +37,7 @@ def sync(s,base,tol):
 					delay.append(time.time())
 					light_on = True
 		except:
+			print value
 			pass
 		if len(delay) >= 12:
 			break
@@ -47,23 +51,18 @@ def wait_delay(s,delay):
 	while delay > time.time() - start:
 		s.readline()
 
-
-print "Opening serial port"
 try:
 	s = serial.Serial('/dev/tty.usbmodem1421',9600,timeout=0.1)
 except:
-	print "Could not open port, exiting now.."
+	print "could not open Port" 
 	sys.exit()
 
-
 base = []
-data = []
-
-
+input_data = []
 
 i = 0
 n_base_reading = 20
-key_length = 3
+key_length = 296
 runs = n_base_reading + key_length
 delay = .1
 
@@ -83,9 +82,9 @@ try:
 				wait_delay(s,delay)
 			if i > n_base_reading:
 				if reading > zero + tol:
-					data.append(1)
+					input_data.append(1)
 				else:
-					data.append(0)
+					input_data.append(0)
 				if i%2 == 0:
 					wait_delay(s,delay-std)
 				else:
@@ -94,18 +93,35 @@ try:
 				break
 			i += 1
 		except:
-			pass
-	
+			pass	
 	#
 	#count = 0.
 	#for i in range(key_length):
-	#	if data[i] == original[i]:
+	#	if input_data[i] == original[i]:
 	#		count += 1
-	#	print original[i], data[i], data[i] == original[i]
+	#	print original[i], input_data[i], input_data[i] == original[i]
 	#print str(count/key_length) + "%"
 finally:
 	s.close()
 
+def data_to_binary(input_data):
+	return ''.join(str(i) for i in input_data)
 
+data = data_to_binary(input_data)
 
+print data
+
+n = int(data, 2)
+access_token = binascii.unhexlify('%x' %n)
+
+client.set_access_token(access_token)
+
+# Get the user's data
+user = client.users()
+
+venue_id = '4d0683609d33a14365b8c678'
+
+url = 'https://api.foursquare.com/v2/checkins/add?oauth_token='+access_token+'&venueId='+venue_id
+
+webbrowser.open(url)
 
